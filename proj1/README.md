@@ -1,0 +1,1 @@
+To run my program call "python k_colorability.py <input-file> <color-count>"
