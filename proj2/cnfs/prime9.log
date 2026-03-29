@@ -1,0 +1,26 @@
+c BabySAT DPLL SAT Solver
+c
+c Copyright (c) 2026, Benjamin Deutsch
+c Version 0.0.4 3f70528ad16f8c5ae9a5b9cc5ac28edf924451f6
+c Compiled with 'g++ -Wall -std=c++11 -O3 -DNDEBUG'
+c
+c reading from 'cnfs/prime9.cnf'
+c parsed header 'p cnf 65 178'
+c
+c             decisions             variables
+c   seconds              conflicts            remaining
+c
+c *    0.00           0           0        64  98%
+c d    0.00           1           0        42  65%
+c 1    0.00           1           0        42  65%
+c
+s SATISFIABLE
+v 1 -2 3 4 -5 6 -7 -8 -9 -10 11 12 13 14 15 -16 -17 -18 -19 20 -21 -22 23 -24 25 -26 -27 28 -29 -30 -31 32 -33 -34 -35 -36 37 -38 -39 -40 41 -42 -43 44 -45 -46 -47 48 -49 50 -51 -52 53 -54 -55 56 -57 58 -59 60 61 62 63 64 65 0
+c
+c conflicts:                     0         0.00 per second
+c decisions:                     1       331.56 per second
+c propagations:                  0         0.00 million per second
+c
+c process-time:               0.00 seconds
+c
+c exit code 10
