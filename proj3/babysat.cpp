@@ -82,7 +82,7 @@ static size_t propagated; // Next position on trail to propagate.
 static double *activity; //activity score for each variable
 static double var_inc = 1; //value to increase activities
 static double var_decay = 0.95; //decay value for activites
-static int decay_interval = 100; //decisions before applying decay
+static int decay_interval = 50; //conflicts before applying decay
 
 // Statistics:
 
@@ -268,7 +268,7 @@ static void initialize(void) {
   occurrences = new std::vector<Clause *>[twice];
 
   levels = new unsigned[size];
-  activity = new double[size];
+  activity = new double[size](); //initialize with 0
   reasons = new Clause*[size];
   seen = new bool[size](); //initialize with false
 
@@ -345,7 +345,9 @@ static void connect_literal(int lit, Clause *c) {
   occurrences[lit].push_back(c);
 }
 
-static Clause *add_clause(std::vector<int> &literals) {
+// if a unit clause is added, it is assigned. The parameter reason is the
+// set as the reason for this assignment
+static Clause *add_clause(std::vector<int> &literals, Clause *reason) {
   size_t size = literals.size();
   size_t bytes = sizeof(struct Clause) + size * sizeof(int);
   Clause *c = (Clause *)new char[bytes];
@@ -380,7 +382,7 @@ static Clause *add_clause(std::vector<int> &literals) {
     int unit = literals[0];
     signed char value = values[unit];
     if (!value)
-      assign(unit, nullptr);
+      assign(unit, reason);
     else if (value < 0) {
       debug(c, "inconsistent unit clause");
       empty_clause = c;
@@ -431,7 +433,7 @@ static void parse(void) {
       clause.push_back(lit);
       literals++;
     } else {
-      add_clause(clause);
+      add_clause(clause, nullptr);
       clause.clear();
       parsed++;
     }
@@ -445,13 +447,19 @@ static void parse(void) {
   verbose("parsed %zu literals in %d clauses", literals, parsed);
 }
 
-static void bumpActivity(int var) {
+static void bump_activity(int var) {
   activity[var] += var_inc;
   if(activity[var] > 1e100 ) {
     // Rescale:
     for (int v = 1; v <= variables; v++)
         activity[v] *= 1e-100;
     var_inc *= 1e-100; 
+  }
+}
+
+static void decay_activity() {
+  if(conflicts % decay_interval == 0){
+    var_inc /= var_decay;
   }
 }
 
@@ -512,13 +520,8 @@ static int is_power_of_two(size_t n) { return n && !(n & (n - 1)); }
 static int decide(void) {
   decisions++;
 
-  //decay activity
-  if(decisions % decay_interval == 0){
-    var_inc /= var_decay;
-  }
-
   int res = 0;
-  int max = -1;
+  double max = -1;
   // Find a variable/literal which is not assigned yet.
   for(int v = 1; v <= variables; v++) {
     if(values[v] == 0){
@@ -616,12 +619,12 @@ static int analyze(Clause *conflict, std::vector<int> &learned) {
   for(auto lit : learned){
     int var = abs(lit);
     seen[var] = false;
-    bumpActivity(var);
+    bump_activity(var);
   }
 
   learned.push_back(-uip);
+  bump_activity(abs(uip));
 
-  //add_clause(learned);
   unsigned bjlevel = 0;
   for(auto lit : learned){
     int var = abs(lit);
@@ -650,17 +653,20 @@ static int cdcl(void) {
     conflict = propagate();
     if(conflict != nullptr){
       debug(conflict, "conflict clause");
+      decay_activity();
       //conflict at level 0 => UNSAT
       if(level == 0) return unsatisfiable;
       learned.clear();
       int bjlevel = analyze(conflict, learned);
       backjump(bjlevel);
-      add_clause(learned);
+      Clause *c = add_clause(learned, conflict);
+      int asserting = learned.back();
+      if (values[asserting] == 0)
+          assign(asserting, c);
     }else{
+      //if all variables are assigned, return SAT
       if(!decide()) return satisfiable;
     }
-    //if all variables are assigned, return SAT
-    
   }
 }
 
