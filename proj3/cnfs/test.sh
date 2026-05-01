@@ -74,4 +74,4 @@ run 20 prime65537
 
 # This is a harder one
 #
-#run 20 prime4294967297
+run 20 prime4294967297

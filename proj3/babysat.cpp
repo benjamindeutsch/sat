@@ -45,6 +45,7 @@ struct Clause {
   size_t id;
 #endif
   unsigned size;
+  unsigned glucose;
   int literals[];
 
   // The following two functions allow simple ranged-based for-loop
@@ -59,7 +60,7 @@ struct Clause {
 };
 
 static int variables;       // Variable range: 1,..,<variables>
-static int initial_clauses; // Number of initial clauses
+static int fixed_clauses; // Number of clauses with glucose level <= 2
 static signed char *values; // Lit assignment 0=unassigned,-1=false,1=true.
 static unsigned *levels;    // Maps variables to their level
 static Clause **reasons;    // Maps variables to their reasons (clauses)
@@ -81,8 +82,11 @@ static size_t propagated; // Next position on trail to propagate.
 
 static double *activity; //activity score for each variable
 static double var_inc = 1; //value to increase activities
-static double var_decay = 0.95; //decay value for activites
-static int decay_interval = 50; //conflicts before applying decay
+static double var_decay = 1.05; //decay value for activites
+static int decay_interval = 100; //conflicts before applying decay
+static int reduce_interval = 1000; //conflicts before reducing clauses
+static double reduce_decay = 1.3;
+static double reduce_percentage = 0.6;
 
 // Statistics:
 
@@ -312,15 +316,6 @@ static bool satisfied(Clause *c) {
   return false;
 }
 
-// Check whether all clauses are satisfied.
-// DONE implement satisfied ()
-static bool satisfied() {
-  for (auto c : clauses)
-    if (!satisfied(c))
-      return false;
-  return true;
-}
-
 // DONE implement assign (int lit)
 static void assign(int lit, Clause *reason) {
   // Set 'values[lit]' and 'values[-lit]'.
@@ -344,7 +339,7 @@ static void connect_literal(int lit, Clause *c) {
 
 // if a unit clause is added, it is assigned. The parameter reason is the
 // set as the reason for this assignment
-static Clause *add_clause(std::vector<int> &literals, Clause *reason) {
+static Clause *add_clause(std::vector<int> &literals, Clause *reason, unsigned glucose) {
   size_t size = literals.size();
   size_t bytes = sizeof(struct Clause) + size * sizeof(int);
   Clause *c = (Clause *)new char[bytes];
@@ -356,6 +351,7 @@ static Clause *add_clause(std::vector<int> &literals, Clause *reason) {
 
   assert(clauses.size() <= (size_t)INT_MAX);
   c->size = size;
+  c->glucose = glucose;
 
   int *q = c->literals;
   for (auto lit : literals)
@@ -430,7 +426,7 @@ static void parse(void) {
       clause.push_back(lit);
       literals++;
     } else {
-      add_clause(clause, nullptr);
+      add_clause(clause, nullptr, 0);
       clause.clear();
       parsed++;
     }
@@ -442,6 +438,8 @@ static void parse(void) {
   if (close_file)
     fclose(file);
   verbose("parsed %zu literals in %d clauses", literals, parsed);
+
+  fixed_clauses = clauses;
 }
 
 static void bump_activity(int var) {
@@ -456,7 +454,7 @@ static void bump_activity(int var) {
 
 static void decay_activity() {
   if(conflicts % decay_interval == 0){
-    var_inc /= var_decay;
+    var_inc *= var_decay;
   }
 }
 
@@ -556,7 +554,7 @@ static void unassign(int lit) {
 }
 
 static void backjump(unsigned bjlevel) {
-  assert(level);
+  //assert(level);
   debug("backjumping to level %d", bjlevel);
 
   // the decision we want to backjump to on the trail
@@ -662,6 +660,42 @@ unsigned find_backjump_level(std::vector<int> literals){
   return bjlevel;
 }
 
+int compute_glucose(std::vector<int> literals) {
+  int glucose = 0;
+  for(auto lit : literals){
+    unsigned lv = levels[abs(lit)];
+    if(!seen[lv]){
+      seen[lv] = true;
+      glucose++;
+    }
+  }
+  for(auto lit : literals){
+    seen[levels[abs(lit)]] = false;
+  }
+  return glucose;
+}
+
+void reduce_clause_db(){
+  if(conflicts % reduce_interval != 0) return;
+  reduce_interval *= reduce_decay;
+  backjump(0);
+
+  std::sort(clauses.begin() + fixed_clauses, clauses.end(), [](Clause *a, Clause *b) { return a->glucose < b->glucose; });
+  size_t non_fixed = clauses.size() - fixed_clauses;
+  size_t to_remove = non_fixed * reduce_percentage;
+  auto split = clauses.end() - to_remove;
+  for (auto it = split; it != clauses.end(); it++) {
+    Clause *c = *it;
+    for (auto lit : *c) {
+      auto &occ = occurrences[lit];
+      auto it = std::find(occ.begin(), occ.end(), c);
+      occ.erase(it);
+    }
+    delete_clause(c);
+  }
+  clauses.erase(split, clauses.end());
+}
+
 // The SAT competition standardized exit codes (the 'exit (code)' or 'return
 // res' in 'main').  All other exit codes denote unsolved or error.
 
@@ -681,12 +715,19 @@ static int cdcl(void) {
       if(level == 0) return unsatisfiable;
       learned.clear();
       analyze(conflict, learned);
+      unsigned glucose = compute_glucose(learned);
+      if(glucose <= 2){
+        glucose = 0;
+        fixed_clauses++;
+      }
       backjump(find_backjump_level(learned));
       //assign asserting literal
-      Clause *c = add_clause(learned, conflict);
+      Clause *c = add_clause(learned, conflict, glucose);
       int asserting = learned.back();
       if (values[asserting] == 0)
           assign(asserting, c);
+
+      reduce_clause_db();
     }else{
       //if all variables are assigned, return SAT
       if(!decide()) return satisfiable;
