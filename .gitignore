@@ -2,3 +2,6 @@ tmp.cnf
 tmp.time
 *.log
 proj2/babysat
+proj2/config.hpp
+proj3/babysat
+proj3/config.hpp

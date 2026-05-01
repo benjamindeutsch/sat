@@ -284,12 +284,6 @@ static void initialize(void) {
   assert(!level);
 }
 
-static void print_clause(Clause *c) {
-  for (auto lit : *c)
-    printf("%d ", lit);
-  printf("0\n");
-}
-
 static void delete_clause(Clause *c) {
   debug(c, "delete");
   delete[] c;
@@ -306,6 +300,9 @@ static void release(void) {
   delete[] values;
 
   delete[] levels;
+  delete[] activity;
+  delete[] reasons;
+  delete[] seen;
 }
 
 static bool satisfied(Clause *c) {
@@ -581,12 +578,14 @@ static void backjump(unsigned bjlevel) {
   propagated = control.empty() ? 0 : control.back();
 }
 
-// finds the first UIP clause, adds the literals of the UIP clause to learned
+// finds the first UIP clause, adds the literals of the minimized UIP clause to minimized
 // returns the backjump level
-static int analyze(Clause *conflict, std::vector<int> &learned) {
+static void analyze(Clause *conflict, std::vector<int> &minimized) {
   int index = trail.size()-1;
   int to_resolve = 0;
   int uip = 0;
+  std::vector<int> learned;
+
   do{
     // resolve with current clause
     if(conflict != nullptr){
@@ -615,18 +614,45 @@ static int analyze(Clause *conflict, std::vector<int> &learned) {
     to_resolve--;
   }while(to_resolve > 0);
 
-  //clear seen and bump activity
+  //bump activity
   for(auto lit : learned){
     int var = abs(lit);
-    seen[var] = false;
     bump_activity(var);
   }
 
   learned.push_back(-uip);
   bump_activity(abs(uip));
+  seen[abs(uip)] = true;
+  
+  // all variables of the UIP clause are marked as seen
+  // only add variables with unseen antecedents to minimized clause
+  for(auto lit : learned) {
+    int var = abs(lit);
+    if(reasons[var] == nullptr){
+      minimized.push_back(lit);
+    }else{
+      bool redundant = true;
+      for(auto antecedent : *reasons[var]){
+        if(!seen[abs(antecedent)]){
+          redundant = false;
+          break;
+        }
+      }
+      if(!redundant){
+        minimized.push_back(lit);
+      }
+    }
+  }
 
-  unsigned bjlevel = 0;
+  // reset seen
   for(auto lit : learned){
+    seen[abs(lit)] = false;
+  }
+}
+
+unsigned find_backjump_level(std::vector<int> literals){
+  unsigned bjlevel = 0;
+  for(auto lit : literals){
     int var = abs(lit);
     if(levels[var] < level && levels[var] > bjlevel){
       bjlevel = levels[var];
@@ -635,8 +661,6 @@ static int analyze(Clause *conflict, std::vector<int> &learned) {
 
   return bjlevel;
 }
-
-
 
 // The SAT competition standardized exit codes (the 'exit (code)' or 'return
 // res' in 'main').  All other exit codes denote unsolved or error.
@@ -649,7 +673,6 @@ static int cdcl(void) {
   std::vector<int> learned;
 
   while(true){
-    //propagate and get possible conflict
     conflict = propagate();
     if(conflict != nullptr){
       debug(conflict, "conflict clause");
@@ -657,8 +680,9 @@ static int cdcl(void) {
       //conflict at level 0 => UNSAT
       if(level == 0) return unsatisfiable;
       learned.clear();
-      int bjlevel = analyze(conflict, learned);
-      backjump(bjlevel);
+      analyze(conflict, learned);
+      backjump(find_backjump_level(learned));
+      //assign asserting literal
       Clause *c = add_clause(learned, conflict);
       int asserting = learned.back();
       if (values[asserting] == 0)
