@@ -1,0 +1,101 @@
+c BabySAT DPLL SAT Solver
+c
+c Copyright (c) 2026, Benjamin Deutsch
+c Version 0.0.4 8b5c9a3bd6550ada4dfde45808b42df91c0787fd
+c Compiled with 'g++ -Wall -std=c++11 -g -DLOGGING'
+c
+c reading from 'cnfs/full3.cnf'
+c parsed header 'p cnf 3 8'
+c DEBUG 0 new size 3 clause[0] 1 2 3
+c DEBUG 0 connecting 1 to size 3 clause[0] 1 2 3
+c DEBUG 0 connecting 2 to size 3 clause[0] 1 2 3
+c DEBUG 0 connecting 3 to size 3 clause[0] 1 2 3
+c DEBUG 0 new size 3 clause[1] 1 2 -3
+c DEBUG 0 connecting 1 to size 3 clause[1] 1 2 -3
+c DEBUG 0 connecting 2 to size 3 clause[1] 1 2 -3
+c DEBUG 0 connecting -3 to size 3 clause[1] 1 2 -3
+c DEBUG 0 new size 3 clause[2] 1 -2 3
+c DEBUG 0 connecting 1 to size 3 clause[2] 1 -2 3
+c DEBUG 0 connecting -2 to size 3 clause[2] 1 -2 3
+c DEBUG 0 connecting 3 to size 3 clause[2] 1 -2 3
+c DEBUG 0 new size 3 clause[3] 1 -2 -3
+c DEBUG 0 connecting 1 to size 3 clause[3] 1 -2 -3
+c DEBUG 0 connecting -2 to size 3 clause[3] 1 -2 -3
+c DEBUG 0 connecting -3 to size 3 clause[3] 1 -2 -3
+c DEBUG 0 new size 3 clause[4] -1 2 3
+c DEBUG 0 connecting -1 to size 3 clause[4] -1 2 3
+c DEBUG 0 connecting 2 to size 3 clause[4] -1 2 3
+c DEBUG 0 connecting 3 to size 3 clause[4] -1 2 3
+c DEBUG 0 new size 3 clause[5] -1 2 -3
+c DEBUG 0 connecting -1 to size 3 clause[5] -1 2 -3
+c DEBUG 0 connecting 2 to size 3 clause[5] -1 2 -3
+c DEBUG 0 connecting -3 to size 3 clause[5] -1 2 -3
+c DEBUG 0 new size 3 clause[6] -1 -2 3
+c DEBUG 0 connecting -1 to size 3 clause[6] -1 -2 3
+c DEBUG 0 connecting -2 to size 3 clause[6] -1 -2 3
+c DEBUG 0 connecting 3 to size 3 clause[6] -1 -2 3
+c DEBUG 0 new size 3 clause[7] -1 -2 -3
+c DEBUG 0 connecting -1 to size 3 clause[7] -1 -2 -3
+c DEBUG 0 connecting -2 to size 3 clause[7] -1 -2 -3
+c DEBUG 0 connecting -3 to size 3 clause[7] -1 -2 -3
+c parsed 24 literals in 8 clauses
+c
+c             decisions             variables
+c   seconds              conflicts            remaining
+c
+c *    0.00           0           0         3 100%
+c DEBUG 1 assign -1@1=1
+c d    0.00           1           0         3 100%
+c DEBUG 2 assign -2@2=1
+c d    0.00           2           0         3 100%
+c DEBUG 2 assign 3@2=1
+c DEBUG 2 conflict clause size 3 clause[1] 1@1=-1 2@2=-1 -3@2=-1
+c DEBUG 2 backjumping to level 1
+c DEBUG 1 unassign 3@2=1
+c DEBUG 1 unassign -2@2=1
+c DEBUG 1 new size 2 clause[8] 1@1=-1 2
+c DEBUG 1 connecting 1@1=-1 to size 2 clause[8] 1@1=-1 2
+c DEBUG 1 connecting 2 to size 2 clause[8] 1@1=-1 2
+c DEBUG 1 assign 2@1=1
+c DEBUG 1 assign 3@1=1
+c DEBUG 1 conflict clause size 3 clause[3] 1@1=-1 -2@1=-1 -3@1=-1
+c DEBUG 1 backjumping to level 0
+c DEBUG 0 unassign 3@1=1
+c DEBUG 0 unassign 2@1=1
+c DEBUG 0 unassign -1@1=1
+c DEBUG 0 new size 1 clause[9] 1
+c DEBUG 0 connecting 1 to size 1 clause[9] 1
+c DEBUG 0 assign 1@0=1
+c DEBUG 1 assign 2@1=1
+c DEBUG 1 assign 3@1=1
+c DEBUG 1 conflict clause size 3 clause[7] -1@0=-1 -2@1=-1 -3@1=-1
+c DEBUG 1 backjumping to level 0
+c DEBUG 0 unassign 3@1=1
+c DEBUG 0 unassign 2@1=1
+c DEBUG 0 new size 1 clause[10] -2
+c DEBUG 0 connecting -2 to size 1 clause[10] -2
+c DEBUG 0 assign -2@0=1
+c DEBUG 0 assign 3@0=1
+c DEBUG 0 conflict clause size 3 clause[5] -1@0=-1 2@0=-1 -3@0=-1
+c 0    0.00           3           4         0   0%
+c
+s UNSATISFIABLE
+c DEBUG 0 delete size 3 clause[0] 1@0=1 2@0=-1 3@0=1
+c DEBUG 0 delete size 3 clause[1] 1@0=1 2@0=-1 -3@0=-1
+c DEBUG 0 delete size 3 clause[2] 1@0=1 -2@0=1 3@0=1
+c DEBUG 0 delete size 3 clause[3] 1@0=1 -2@0=1 -3@0=-1
+c DEBUG 0 delete size 3 clause[4] -1@0=-1 2@0=-1 3@0=1
+c DEBUG 0 delete size 3 clause[5] -1@0=-1 2@0=-1 -3@0=-1
+c DEBUG 0 delete size 3 clause[6] -1@0=-1 -2@0=1 3@0=1
+c DEBUG 0 delete size 3 clause[7] -1@0=-1 -2@0=1 -3@0=-1
+c DEBUG 0 delete size 2 clause[8] 1@0=1 2@0=-1
+c DEBUG 0 delete size 1 clause[9] 1@0=1
+c DEBUG 0 delete size 1 clause[10] -2@0=1
+c
+c conflicts:                     4      2168.02 per second
+c decisions:                     3      1626.02 per second
+c propagations:                  3         0.00 million per second
+c
+c process-time:               0.00 seconds
+c
+c exit code 20

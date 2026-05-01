@@ -1,4 +1,4 @@
-COMPILE=g++ -Wall -std=c++11 -g -DLOGGING
+COMPILE=@COMPILE@
 all: babysat
 babysat: babysat.cpp config.hpp makefile
 	$(COMPILE) -o $@ $<
